@@ -895,7 +895,12 @@ class BenchmarkCNN(object):
         sess.run(enqueue_ops[:(i+1)])
       if FLAGS.train_dir is None:
         raise ValueError('Trained model directory not specified')
+      load_model_start = datetime.datetime.now()
+      print("load model start: " + str(load_model_start))
       global_step = load_checkpoint(saver, sess, FLAGS.train_dir)
+      load_model_end = datetime.datetime.now()
+      print("load model end: " + str(load_model_end))
+      print("load model takes: " + str((load_model_end - load_model_start).total_seconds()))
 
       start_time = time.time()
       count_top_1 = 0.0
