@@ -25,7 +25,7 @@ from collections import defaultdict
 import os
 import threading
 import time
-
+import datetime
 import numpy as np
 
 import six
@@ -696,6 +696,7 @@ def get_perf_timing_str(batch_size, step_train_times, scale=1):
 
 
 def load_checkpoint(saver, sess, ckpt_dir):
+  print(ckpt_dir)
   ckpt = tf.train.get_checkpoint_state(ckpt_dir)
   if ckpt and ckpt.model_checkpoint_path:
     if os.path.isabs(ckpt.model_checkpoint_path):
@@ -895,12 +896,7 @@ class BenchmarkCNN(object):
         sess.run(enqueue_ops[:(i+1)])
       if FLAGS.train_dir is None:
         raise ValueError('Trained model directory not specified')
-      load_model_start = datetime.datetime.now()
-      print("load model start: " + str(load_model_start))
       global_step = load_checkpoint(saver, sess, FLAGS.train_dir)
-      load_model_end = datetime.datetime.now()
-      print("load model end: " + str(load_model_end))
-      print("load model takes: " + str((load_model_end - load_model_start).total_seconds()))
 
       start_time = time.time()
       count_top_1 = 0.0
@@ -964,10 +960,12 @@ class BenchmarkCNN(object):
     # passing in None for summary_op to avoid a summary_thread being started.
     # Running summaries and training operations in parallel could run out of
     # GPU memory.
+    #init_op = tf.initialize_all_variables()
+    svsaver=tf.train.Saver(tf.global_variables())
     sv = tf.train.Supervisor(
         is_chief=is_chief,
         logdir=FLAGS.train_dir,
-        saver=tf.train.Saver(tf.global_variables()),
+        saver=svsaver,
         global_step=global_step,
         summary_op=None,
         save_model_secs=FLAGS.save_model_secs,
@@ -986,7 +984,14 @@ class BenchmarkCNN(object):
 
       init_global_step = 0
       if FLAGS.pretrain_dir is not None:
+        print("load checkpoint")
+        load_model_start = datetime.datetime.now()
+        print("load model start: " + str(load_model_start))
         init_global_step = load_checkpoint(sv.saver, sess, FLAGS.pretrain_dir)
+        load_model_end = datetime.datetime.now()
+        print("load model end: " + str(load_model_end))
+        print("load model takes: " + str((load_model_end - load_model_start).total_seconds()))
+
       global_step_watcher = GlobalStepWatcher(
           sess, global_step,
           len(self.worker_hosts) * self.num_warmup_batches + init_global_step,
@@ -1031,6 +1036,13 @@ class BenchmarkCNN(object):
             self.trace_filename, fetch_summary)
         if summary_str is not None and is_chief:
           sv.summary_computed(sess, summary_str)
+        if (local_step == 100):
+          save_start=datetime.datetime.now()
+          print("save start: " + str(save_start))
+          sv.saver.save(sess, FLAGS.train_dir, global_step)
+          save_end=datetime.datetime.now()
+          print("save end: " + str(save_end))
+          print("save takes: " + str((save_end - save_start).total_seconds()))
         local_step += 1
       # Waits for the global step to be done, regardless of done_fn.
       while not global_step_watcher.done():
@@ -1046,7 +1058,7 @@ class BenchmarkCNN(object):
         checkpoint_path = os.path.join(FLAGS.train_dir, 'model.ckpt')
         if not gfile.Exists(FLAGS.train_dir):
           gfile.MakeDirs(FLAGS.train_dir)
-        sv.saver.save(sess, checkpoint_path, global_step)
+        #sv.saver.save(sess, checkpoint_path, global_step)
 
       if execution_barrier:
         # Wait for other workers to reach the end, so this worker doesn't
