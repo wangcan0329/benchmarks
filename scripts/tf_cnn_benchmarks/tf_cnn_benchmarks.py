@@ -60,7 +60,7 @@ tf.flags.DEFINE_boolean('eval', False, 'whether use eval or benchmarking')
 tf.flags.DEFINE_boolean('forward_only', False, """whether use forward-only or
                          training for benchmarking""")
 tf.flags.DEFINE_integer('batch_size', 0, 'batch size per compute device')
-tf.flags.DEFINE_integer('num_batches', 100,
+tf.flags.DEFINE_integer('num_batches', 1000,
                         'number of batches to run, excluding warmup')
 tf.flags.DEFINE_integer('num_warmup_batches', None,
                         'number of batches to run before timing')
@@ -89,16 +89,16 @@ tf.flags.DEFINE_boolean('distortions', True,
                         """Enable/disable distortions during
                        image preprocessing. These include bbox and color
                        distortions.""")
-tf.flags.DEFINE_string('local_parameter_device', 'gpu',
+tf.flags.DEFINE_string('local_parameter_device', 'cpu',
                        """Device to use as parameter server: cpu or gpu.
                           For distributed training, it can affect where caching
                           of variables happens.""")
-tf.flags.DEFINE_string('device', 'gpu',
+tf.flags.DEFINE_string('device', 'cpu',
                        """Device to use for computation: cpu or gpu""")
-tf.flags.DEFINE_string('data_format', 'NCHW',
+tf.flags.DEFINE_string('data_format', 'NHWC',
                        """Data layout to use: NHWC (TF native)
                        or NCHW (cuDNN native).""")
-tf.flags.DEFINE_integer('num_intra_threads', 1,
+tf.flags.DEFINE_integer('num_intra_threads', 0,
                         """Number of threads to use for intra-op
                        parallelism. If set to 0, the system will pick
                        an appropriate number.""")
